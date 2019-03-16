@@ -16,8 +16,10 @@ submission/
 cfg/
 datasets/
 build/darknet/*
+darknet
 !build/darknet/YoloWrapper.cs
 .fuse*
+.ccls-cache
 
 # OS Generated #
 .DS_Store*

@@ -1334,3 +1334,13 @@ network *load_network(char *cfg, char *weights, int clear)
     if (clear) (*net->seen) = 0;
     return net;
 }
+
+
+void save_current_progress(char * progress, char * filename)
+{
+  fprintf(stderr, "Saving progress to %s...", filename);
+  FILE *fp = fopen(filename, "a");
+  if(!fp) file_error(filename);
+  fputs(progress, fp);
+  fclose(fp);
+}

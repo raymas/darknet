@@ -7,6 +7,7 @@
 #include "box.h"
 #include "demo.h"
 #include "option_list.h"
+#include <time.h>
 
 #ifndef __COMPAR_FN_T
 #define __COMPAR_FN_T
@@ -179,6 +180,13 @@ void train_detector(char *datacfg, char *cfgfile, char *weightfile, int *gpus, i
     pthread_t load_thread = load_data(args);
     double time;
     int count = 0;
+
+    char* progress_buffer[1024];
+    strcat(progress_buffer, "batch;loss;avg_loss;rate;secondes;images;map;\n");
+
+    char bu[256];
+    sprintf(bu, "%s/%s_progress.csv", backup_directory, base);
+    save_current_progress(progress_buffer, bu);
     //while(i*imgs < N*120){
     while (get_current_batch(net) < net.max_batches) {
         if (l.random && count++ % 10 == 0) {
@@ -273,6 +281,9 @@ void train_detector(char *datacfg, char *cfgfile, char *weightfile, int *gpus, i
         }
         printf("\n %d: %f, %f avg loss, %f rate, %lf seconds, %d images\n", get_current_batch(net), loss, avg_loss, get_current_rate(net), (what_time_is_it_now() - time), i*imgs);
 
+        memset(progress_buffer, 0, 1024 * (sizeof progress_buffer[0]) );
+        sprintf(progress_buffer, "%d;%f;%f;%f;lf;%d;", get_current_batch(net), loss, avg_loss, get_current_rate(net), (what_time_is_it_now() - time), i*imgs);
+
         int draw_precision = 0;
         if (calc_map && (i >= calc_map_for_each || i == net.max_batches)) {
             if (l.random) {
@@ -296,7 +307,10 @@ void train_detector(char *datacfg, char *cfgfile, char *weightfile, int *gpus, i
             mean_average_precision = validate_detector_map(datacfg, cfgfile, weightfile, 0.25, 0.5, &net_combined);
             printf("\n mean_average_precision (mAP@0.5) = %f \n", mean_average_precision);
             draw_precision = 1;
+            sprintf(progress_buffer, "%f;", mean_average_precision);
         }
+        strcat(progress_buffer, "\n");
+
 #ifdef OPENCV
         draw_train_loss(img, img_size, avg_loss, max_img_loss, i, net.max_batches, mean_average_precision, draw_precision, "mAP%", dont_show, mjpeg_port);
 #endif    // OPENCV
@@ -321,6 +335,12 @@ void train_detector(char *datacfg, char *cfgfile, char *weightfile, int *gpus, i
             char buff[256];
             sprintf(buff, "%s/%s_last.weights", backup_directory, base, i);
             save_weights(net, buff);
+        }
+
+        if (i % 100 == 0) {
+          char buff[256];
+          sprintf(buff, "%s/%s_progress.csv", backup_directory, base);
+          save_current_progress(progress_buffer, buff);
         }
         free_data(train);
     }
