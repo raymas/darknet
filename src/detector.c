@@ -7,7 +7,7 @@
 #include "box.h"
 #include "demo.h"
 #include "option_list.h"
-#include <time.h>
+#include "server.h"
 
 #ifndef __COMPAR_FN_T
 #define __COMPAR_FN_T
@@ -54,7 +54,7 @@ int check_mistakes;
 
 static int coco_ids[] = { 1,2,3,4,5,6,7,8,9,10,11,13,14,15,16,17,18,19,20,21,22,23,24,25,27,28,31,32,33,34,35,36,37,38,39,40,41,42,43,44,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,67,70,72,73,74,75,76,77,78,79,80,81,82,84,85,86,87,88,89,90 };
 
-void train_detector(char *datacfg, char *cfgfile, char *weightfile, int *gpus, int ngpus, int clear, int dont_show, int calc_map, int mjpeg_port)
+void train_detector(char *datacfg, char *cfgfile, char *weightfile, int *gpus, int ngpus, int clear, int dont_show, int calc_map, int csv_save_points, int mjpeg_port, int dashboard)
 {
     list *options = read_data_cfg(datacfg);
     char *train_images = option_find_str(options, "train", "data/train.txt");
@@ -181,12 +181,15 @@ void train_detector(char *datacfg, char *cfgfile, char *weightfile, int *gpus, i
     double time;
     int count = 0;
 
-    char* progress_buffer[1024];
+    char date_name[1024];
+    get_date(date_name);
+
+    char progress_buffer[1024] = "";
     strcat(progress_buffer, "batch;loss;avg_loss;rate;secondes;images;map;\n");
 
     char bu[256];
-    sprintf(bu, "%s/%s_progress.csv", backup_directory, base);
-    save_current_progress(progress_buffer, bu);
+    sprintf(bu, "%s/%s_%s_progress.csv", backup_directory, base, date_name);
+    save_current_progress(progress_buffer, bu, 1);
     //while(i*imgs < N*120){
     while (get_current_batch(net) < net.max_batches) {
         if (l.random && count++ % 10 == 0) {
@@ -279,10 +282,10 @@ void train_detector(char *datacfg, char *cfgfile, char *weightfile, int *gpus, i
             if (i < net.burn_in * 3) fprintf(stderr, "\n Tensor Cores are disabled until the first %d iterations are reached.", 3 * net.burn_in);
             else fprintf(stderr, "\n Tensor Cores are used.");
         }
-        printf("\n %d: %f, %f avg loss, %f rate, %lf seconds, %d images\n", get_current_batch(net), loss, avg_loss, get_current_rate(net), (what_time_is_it_now() - time), i*imgs);
+        printf("\n %d/%d: %f, %f avg loss, %f rate, %lf seconds, %d images\n", get_current_batch(net), net.max_batches, loss, avg_loss, get_current_rate(net), (what_time_is_it_now() - time), i*imgs);
 
         memset(progress_buffer, 0, 1024 * (sizeof progress_buffer[0]) );
-        sprintf(progress_buffer, "%d;%f;%f;%f;lf;%d;", get_current_batch(net), loss, avg_loss, get_current_rate(net), (what_time_is_it_now() - time), i*imgs);
+        sprintf(progress_buffer, "%d;%f;%f;%f;%lf;%d;", get_current_batch(net), loss, avg_loss, get_current_rate(net), (what_time_is_it_now() - time), i*imgs);
 
         int draw_precision = 0;
         if (calc_map && (i >= calc_map_for_each || i == net.max_batches)) {
@@ -307,9 +310,12 @@ void train_detector(char *datacfg, char *cfgfile, char *weightfile, int *gpus, i
             mean_average_precision = validate_detector_map(datacfg, cfgfile, weightfile, 0.25, 0.5, &net_combined);
             printf("\n mean_average_precision (mAP@0.5) = %f \n", mean_average_precision);
             draw_precision = 1;
-            sprintf(progress_buffer, "%f;", mean_average_precision);
+
+            char map_str[15] = "";
+            sprintf(map_str, "%f", mean_average_precision);
+            strcat(progress_buffer, map_str);
         }
-        strcat(progress_buffer, "\n");
+        strcat(progress_buffer, ";\n");
 
 #ifdef OPENCV
         draw_train_loss(img, img_size, avg_loss, max_img_loss, i, net.max_batches, mean_average_precision, draw_precision, "mAP%", dont_show, mjpeg_port);
@@ -337,10 +343,10 @@ void train_detector(char *datacfg, char *cfgfile, char *weightfile, int *gpus, i
             save_weights(net, buff);
         }
 
-        if (i % 100 == 0) {
+        if (i % csv_save_points == 0 || (calc_map && (i >= calc_map_for_each || i == net.max_batches))) {
           char buff[256];
-          sprintf(buff, "%s/%s_progress.csv", backup_directory, base);
-          save_current_progress(progress_buffer, buff);
+          sprintf(buff, "%s/%s_%s_progress.csv", backup_directory, base, date_name);
+          save_current_progress(progress_buffer, buff, 0);
         }
         free_data(train);
     }
@@ -1435,6 +1441,8 @@ void run_detector(int argc, char **argv)
     int num_of_clusters = find_int_arg(argc, argv, "-num_of_clusters", 5);
     int width = find_int_arg(argc, argv, "-width", -1);
     int height = find_int_arg(argc, argv, "-height", -1);
+    int csv_save_points = find_int_arg(argc, argv, "-csv", 100);
+    int calc_map = find_arg(argc, argv, "-dashboard");
     // extended output in test mode (output of rect bound coords)
     // and for recall mode (extended output table-like format with results for best_class fit)
     int ext_output = find_arg(argc, argv, "-ext_output");
@@ -1477,7 +1485,7 @@ void run_detector(int argc, char **argv)
             if (weights[strlen(weights) - 1] == 0x0d) weights[strlen(weights) - 1] = 0;
     char *filename = (argc > 6) ? argv[6] : 0;
     if (0 == strcmp(argv[2], "test")) test_detector(datacfg, cfg, weights, filename, thresh, hier_thresh, dont_show, ext_output, save_labels, outfile);
-    else if (0 == strcmp(argv[2], "train")) train_detector(datacfg, cfg, weights, gpus, ngpus, clear, dont_show, calc_map, mjpeg_port);
+    else if (0 == strcmp(argv[2], "train")) train_detector(datacfg, cfg, weights, gpus, ngpus, clear, dont_show, calc_map, csv_save_points, mjpeg_port, dashboard);
     else if (0 == strcmp(argv[2], "valid")) validate_detector(datacfg, cfg, weights, outfile);
     else if (0 == strcmp(argv[2], "recall")) validate_detector_recall(datacfg, cfg, weights);
     else if (0 == strcmp(argv[2], "map")) validate_detector_map(datacfg, cfg, weights, thresh, iou_thresh, NULL);

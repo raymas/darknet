@@ -34,6 +34,7 @@
 #include "upsample_layer.h"
 #include "yolo_layer.h"
 #include <stdint.h>
+#include <time.h>
 
 typedef struct{
     char *type;
@@ -1335,12 +1336,28 @@ network *load_network(char *cfg, char *weights, int clear)
     return net;
 }
 
-
-void save_current_progress(char * progress, char * filename)
+void get_date(char * buf)
 {
-  fprintf(stderr, "Saving progress to %s...", filename);
-  FILE *fp = fopen(filename, "a");
-  if(!fp) file_error(filename);
-  fputs(progress, fp);
-  fclose(fp);
+  time_t t = time(NULL);
+  struct tm tm = *localtime(&t);
+  printf("now: %d-%d-%d %d:%d:%d\n", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
+  sprintf(buf, "%d-%d-%d_%d:%d:%d", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
+}
+
+void save_current_progress(char * progress, char * filename, int clear)
+{
+  fprintf(stderr, "Saving progress to %s...\n", filename);
+  FILE *fp;
+  if (clear) {
+    fp = fopen(filename, "w");
+  } else {
+   fp = fopen(filename, "a");
+  }
+  if(!fp) 
+  {
+    file_error(filename);
+  } else {
+    fputs(progress, fp);
+    fclose(fp);
+  }
 }

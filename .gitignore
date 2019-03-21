@@ -1,11 +1,25 @@
+# ignore big files
 *.o
 *.dSYM
 *.csv
 *.out
 *.png
 *.so
+*.weights
+
+# ignore only subfolders
+data/*
+# !data/.gitkeep
+cfg/*
+# !cfg/.gitkeep
+datasets/*
+!datasets/*.py
+weights/*
+!weights/.gitkeep
+
+# ignore this folders
+backup/
 mnist/
-data/
 caffe/
 grasp/
 images/
@@ -13,13 +27,12 @@ opencv/
 convnet/
 decaf/
 submission/
-cfg/
-datasets/
 build/darknet/*
 darknet
 !build/darknet/YoloWrapper.cs
 .fuse*
 .ccls-cache
+
 
 # OS Generated #
 .DS_Store*
