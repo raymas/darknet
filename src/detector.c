@@ -1442,7 +1442,7 @@ void run_detector(int argc, char **argv)
     int width = find_int_arg(argc, argv, "-width", -1);
     int height = find_int_arg(argc, argv, "-height", -1);
     int csv_save_points = find_int_arg(argc, argv, "-csv", 100);
-    int calc_map = find_arg(argc, argv, "-dashboard");
+    int dashboard = find_arg(argc, argv, "-dashboard");
     // extended output in test mode (output of rect bound coords)
     // and for recall mode (extended output table-like format with results for best_class fit)
     int ext_output = find_arg(argc, argv, "-ext_output");
