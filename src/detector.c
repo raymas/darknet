@@ -7,7 +7,7 @@
 #include "box.h"
 #include "demo.h"
 #include "option_list.h"
-#include "server.h"
+// #include "server.h"
 
 #ifndef __COMPAR_FN_T
 #define __COMPAR_FN_T

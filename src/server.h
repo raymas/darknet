@@ -6,7 +6,7 @@
 void modesInitNet(void);
 void modesAcceptClients(void);
 void modesFreeClient(int fd);
-void modesSendAllClients(int service, void *msg, int len)
+void modesSendAllClients(int service, void *msg, int len);
 void modesSendRawOutput(struct modesMessage *mm);
 int hexDigitVal(int c);
 char * performancesToJson(float * performances, int *len);
