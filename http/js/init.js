@@ -34,8 +34,9 @@ function handleContents(contents, delimiter) {
   for (var j=1; j < allTextLines.length; j++) {
     var row = allTextLines[j].split(delimiter);
     for (var i=0; i < row.length; i++) {
-      if (row == '') { row = 0.0; }
-      ALL_MESSAGES[headers[i]].push(parseFloat(row[i]));
+      if (row[i] != '') {
+        ALL_MESSAGES[headers[i]].push(parseFloat(row[i]));
+      }
     }
   }
 
@@ -43,7 +44,7 @@ function handleContents(contents, delimiter) {
   for (var key in ALL_MESSAGES) {
     if (ALL_MESSAGES.hasOwnProperty(key)) {
       if (key != "batch" && key != "") {
-        createGraphLog(key, x, ALL_MESSAGES[key]);
+        createGraphLog(key, x, ALL_MESSAGES[key], (key == "map")? 'markers' : 'lines');
       }
     }
   }
@@ -62,7 +63,7 @@ function fetchData() {
 }
 
 
-function createGraphLog(name, x, y) {
+function createGraphLog(name, x, y, mode) {
   var layout = {
     title: name,
     xaxis: {
@@ -79,7 +80,8 @@ function createGraphLog(name, x, y) {
   var data = [{
     x: x,
     y: y,
-    type: 'scatter'
+    type: 'scatter',
+    mode: mode
   }];
 
   console.log(data);

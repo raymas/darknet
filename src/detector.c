@@ -145,6 +145,7 @@ void train_detector(char *datacfg, char *cfgfile, char *weightfile, int *gpus, i
     iter_save_last = get_current_batch(net);
     iter_map = get_current_batch(net);
     float mean_average_precision = -1;
+    float epochs = iter_map + train_images_num / (net.batch * net.subdivisions);
 
     load_args args = { 0 };
     args.w = net.w;
