@@ -7,23 +7,22 @@ rootTest = os.path.join(rootDataset, "Test")
 
 TARGET = ".jpg"
 
-def getImages(root) :
-  out = []
-  for path, subdirs, files in os.walk(root):
-    for name in files:
-      pathFile = os.path.join(path, name)
-      dirFile = os.path.join(path)
-      if TARGET in pathFile :
-        out.append(pathFile)
 
-  return out
+def getImages(root):
+    out = []
+    for path, subdirs, files in os.walk(root):
+        for name in files:
+            pathFile = os.path.join(path, name)
+            if TARGET in pathFile[-1 * len(TARGET):]:
+                out.append(pathFile)
+
+    return out
 
 
-def writeFile(path, name, buf) :
-  with open(os.path.join(path, name), "w") as f :
-    f.write(buf)
-  f.close()
-
+def writeFile(path, name, buf):
+    with open(os.path.join(path, name), "w") as f:
+        f.write(buf)
+        f.close()
 
 train = getImages(rootTrain)
 test = getImages(rootTest)
